@@ -39,6 +39,10 @@ function courseStatus(expiry){
 
 app.post("/upload",upload.single("file"),(req,res)=>{
 
+ if(!req.file){
+  return res.status(400).json({error:"請先選擇檔案"})
+ }
+
  employees=parseExcel(req.file.path)
 
  res.json({
