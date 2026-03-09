@@ -144,6 +144,30 @@ function getCell(row, idx) {
   return value == null ? "" : value
 }
 
+
+
+function findCertFromRow(row) {
+  const cells = row.map((v) => String(v || "").trim()).filter(Boolean)
+  const joined = compactText(cells.join(" "))
+  if (!joined) return { certFull: "", cert: "" }
+
+  for (const fullName of CERT_KEYS) {
+    const normalizedName = compactText(fullName)
+    if (joined.includes(normalizedName)) {
+      return { certFull: fullName, cert: CERT_ABBR[fullName] || fullName }
+    }
+  }
+
+  for (const [fullName, abbr] of Object.entries(CERT_ABBR)) {
+    const normalizedAbbr = compactText(abbr)
+    if (normalizedAbbr && joined.includes(normalizedAbbr)) {
+      return { certFull: fullName, cert: abbr }
+    }
+  }
+
+  return { certFull: "", cert: "" }
+}
+
 function parseExcel(path) {
   const workbook = XLSX.readFile(path, { cellDates: true })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -172,13 +196,17 @@ function parseExcel(path) {
 
   return dataRows
     .map((row) => {
-      const certFull = normalizeCertFull(getCell(row, columnIndex.cert))
+      const certFromColumn = normalizeCertFull(getCell(row, columnIndex.cert))
+      const certFallback = findCertFromRow(row)
+      const certFull = certFromColumn || certFallback.certFull
+      const cert = normalizeCert(certFromColumn) || certFallback.cert
+
       return {
         factory: "台南工廠",
         dept: normalizeDept(getCell(row, columnIndex.dept)),
         name: String(getCell(row, columnIndex.name)).trim(),
         certFull,
-        cert: normalizeCert(certFull),
+        cert,
         certNo: String(getCell(row, columnIndex.certNo)).trim(),
         issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
         expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
