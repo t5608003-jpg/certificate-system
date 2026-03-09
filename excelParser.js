@@ -11,18 +11,13 @@ const HEADER_ALIASES = {
   retrain: ["已複訓日", "複訓日", "最近複訓日"],
 }
 
-function normalizeHeader(value) {
-  return String(value || "").replace(/\s+/g, "").trim()
-}
+const ALL_ALIASES = Object.values(HEADER_ALIASES).flat().map(normalizeHeader)
 
-function getValueByAliases(row, aliases) {
-  const entries = Object.entries(row)
-  for (const alias of aliases) {
-    const key = normalizeHeader(alias)
-    const found = entries.find(([rawKey]) => normalizeHeader(rawKey) === key)
-    if (found && found[1] !== "") return found[1]
-  }
-  return ""
+function normalizeHeader(value) {
+  return String(value || "")
+    .replace(/\s+/g, "")
+    .replace(/[：:]/g, "")
+    .trim()
 }
 
 function excelDateToISO(value) {
@@ -43,24 +38,68 @@ function excelDateToISO(value) {
   return String(value).trim()
 }
 
+function findHeaderRow(rows) {
+  let bestIndex = 0
+  let bestScore = -1
+
+  rows.slice(0, 20).forEach((row, idx) => {
+    const normalizedCells = row.map(normalizeHeader).filter(Boolean)
+    const score = normalizedCells.filter((cell) => ALL_ALIASES.includes(cell)).length
+    if (score > bestScore) {
+      bestScore = score
+      bestIndex = idx
+    }
+  })
+
+  return bestIndex
+}
+
+function findColumnIndex(headerCells, aliases) {
+  const aliasSet = new Set(aliases.map(normalizeHeader))
+  return headerCells.findIndex((cell) => aliasSet.has(normalizeHeader(cell)))
+}
+
+function getCell(row, idx) {
+  if (idx < 0) return ""
+  const value = row[idx]
+  return value == null ? "" : value
+}
+
 function parseExcel(path) {
   const workbook = XLSX.readFile(path, { cellDates: true })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
-  const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" })
+  const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" })
 
-  return rows
-    .map((r) => ({
+  if (!aoa.length) return []
+
+  const headerRowIndex = findHeaderRow(aoa)
+  const header = aoa[headerRowIndex] || []
+  const dataRows = aoa.slice(headerRowIndex + 1)
+
+  const columnIndex = {
+    dept: findColumnIndex(header, HEADER_ALIASES.dept),
+    name: findColumnIndex(header, HEADER_ALIASES.name),
+    cert: findColumnIndex(header, HEADER_ALIASES.cert),
+    certNo: findColumnIndex(header, HEADER_ALIASES.certNo),
+    issueDate: findColumnIndex(header, HEADER_ALIASES.issueDate),
+    expiry: findColumnIndex(header, HEADER_ALIASES.expiry),
+    training: findColumnIndex(header, HEADER_ALIASES.training),
+    retrain: findColumnIndex(header, HEADER_ALIASES.retrain),
+  }
+
+  return dataRows
+    .map((row) => ({
       factory: "台南工廠",
-      dept: getValueByAliases(r, HEADER_ALIASES.dept),
-      name: getValueByAliases(r, HEADER_ALIASES.name),
-      cert: getValueByAliases(r, HEADER_ALIASES.cert),
-      certNo: getValueByAliases(r, HEADER_ALIASES.certNo),
-      issueDate: excelDateToISO(getValueByAliases(r, HEADER_ALIASES.issueDate)),
-      expiry: excelDateToISO(getValueByAliases(r, HEADER_ALIASES.expiry)),
-      training: getValueByAliases(r, HEADER_ALIASES.training),
-      retrain: excelDateToISO(getValueByAliases(r, HEADER_ALIASES.retrain)),
+      dept: String(getCell(row, columnIndex.dept)).trim(),
+      name: String(getCell(row, columnIndex.name)).trim(),
+      cert: String(getCell(row, columnIndex.cert)).trim(),
+      certNo: String(getCell(row, columnIndex.certNo)).trim(),
+      issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
+      expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
+      training: String(getCell(row, columnIndex.training)).trim(),
+      retrain: excelDateToISO(getCell(row, columnIndex.retrain)),
     }))
-    .filter((row) => row.name || row.certNo || row.cert)
+    .filter((row) => row.name || row.certNo || row.cert || row.dept)
 }
 
 module.exports = parseExcel
