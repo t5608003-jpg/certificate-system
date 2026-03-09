@@ -3,7 +3,7 @@ const XLSX = require("xlsx")
 const HEADER_ALIASES = {
   dept: ["單位", "部門", "單位/部門", "部門別"],
   name: ["姓名", "員工姓名"],
-  cert: ["證照", "證照名稱", "證照項目"],
+  cert: ["證照", "證照名稱", "證照項目", "證照別", "資格", "證照全名"],
   certNo: ["證號", "合格證字號", "證照字號", "證照編號"],
   issueDate: ["發證日", "發照日", "發證日期"],
   expiry: ["複訓期限", "複訊期限", "到期日", "有效期限", "複訓到期日"],
@@ -53,8 +53,12 @@ function normalizeHeader(value) {
     .trim()
 }
 
+function normalizeCertFull(cert) {
+  return String(cert || "").trim()
+}
+
 function normalizeCert(cert) {
-  const text = String(cert || "").trim()
+  const text = normalizeCertFull(cert)
   return CERT_ABBR[text] || text
 }
 
@@ -135,6 +139,7 @@ function parseExcel(path) {
       factory: "台南工廠",
       dept: normalizeDept(getCell(row, columnIndex.dept)),
       name: String(getCell(row, columnIndex.name)).trim(),
+      certFull: normalizeCertFull(getCell(row, columnIndex.cert)),
       cert: normalizeCert(getCell(row, columnIndex.cert)),
       certNo: String(getCell(row, columnIndex.certNo)).trim(),
       issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
