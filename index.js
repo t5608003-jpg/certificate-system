@@ -4,6 +4,7 @@ const cors=require("cors")
 
 const parseExcel=require("./excelParser")
 const {setCourse,getCourses}=require("./courseStore")
+const {loadEmployees,saveEmployees}=require("./employeeStore")
 
 const app=express()
 
@@ -13,11 +14,15 @@ app.use(express.static("public"))
 
 const upload=multer({dest:"uploads/"})
 
-let employees=[]
+let employees=loadEmployees()
 
 function parseDate(str){
  if(!str) return null
  return new Date(str)
+}
+
+function isValidDate(date){
+ return date instanceof Date && !Number.isNaN(date.getTime())
 }
 
 function courseStatus(expiry){
@@ -26,7 +31,7 @@ function courseStatus(expiry){
 
  const exp=parseDate(expiry)
 
- if(!exp) return "合格"
+ if(!isValidDate(exp)) return "合格"
 
  if(exp < today) return "已過期"
 
@@ -44,6 +49,7 @@ app.post("/upload",upload.single("file"),(req,res)=>{
  }
 
  employees=parseExcel(req.file.path)
+ saveEmployees(employees)
 
  res.json({
    count:employees.length
@@ -66,16 +72,18 @@ app.get("/search",(req,res)=>{
 
  if(!expiry) return true
 
+ if(!e.name || !e.expiry) return false
+
  const exp=parseDate(e.expiry)
 
- if(!exp) return true
+ if(!isValidDate(exp)) return false
 
  const diff=(exp-today)/(1000*60*60*24)
 
  if(exp < today) return false
 
  if(expiry=="month")
-   return exp.getMonth()==today.getMonth()
+   return exp.getMonth()==today.getMonth() && exp.getFullYear()==today.getFullYear()
 
  if(expiry=="1")
    return diff<=30
