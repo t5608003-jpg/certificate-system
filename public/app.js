@@ -1,5 +1,16 @@
 const api=""
 
+function statusColor(status){
+
+ if(status==="合格") return "#2563eb"
+ if(status==="待規劃") return "#f59e0b"
+ if(status==="已過期") return "#dc2626"
+
+ return "inherit"
+
+}
+
+
 async function upload(){
 
  const file=document.getElementById("file").files[0]
@@ -54,7 +65,7 @@ async function search(){
  <td>${d.expiry}</td>
  <td>
  <a href="detail.html?certNo=${d.certNo}">
- ${d.status}
+ <span style="color:${statusColor(d.status)};font-weight:600;">${d.status}</span>
  </a>
  </td>
  `
