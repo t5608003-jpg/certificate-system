@@ -66,7 +66,7 @@ app.get("/search",(req,res)=>{
 
  let result=employees.filter(e=>{
 
- const text=(e.factory+e.dept+e.name+e.cert).toLowerCase()
+ const text=(e.factory+e.dept+e.name+(e.cert||"")+(e.certFull||"")).toLowerCase()
 
  if(!text.includes(keyword.toLowerCase())) return false
 
@@ -108,6 +108,7 @@ app.get("/search",(req,res)=>{
 
  return{
    ...r,
+   cert:r.cert || r.certFull || "",
    status,
    course
  }
