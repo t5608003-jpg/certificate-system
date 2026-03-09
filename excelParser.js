@@ -28,6 +28,8 @@ const CERT_ABBR = {
   保安檢查員: "保安檢查員",
 }
 
+const CERT_KEYS = Object.keys(CERT_ABBR)
+
 const ALLOWED_DEPTS = new Set([
   "副廠長",
   "倉管課",
@@ -53,13 +55,30 @@ function normalizeHeader(value) {
     .trim()
 }
 
+function compactText(value) {
+  return String(value || "").replace(/\s+/g, "").trim()
+}
+
 function normalizeCertFull(cert) {
   return String(cert || "").trim()
 }
 
+function findCertCanonicalName(cert) {
+  const source = compactText(cert)
+  if (!source) return ""
+  for (const fullName of CERT_KEYS) {
+    const normalizedName = compactText(fullName)
+    if (source === normalizedName) return fullName
+    if (source.includes(normalizedName) || normalizedName.includes(source)) return fullName
+  }
+  return ""
+}
+
 function normalizeCert(cert) {
   const text = normalizeCertFull(cert)
-  return CERT_ABBR[text] || text
+  const canonical = findCertCanonicalName(text)
+  if (!canonical) return text
+  return CERT_ABBR[canonical] || text
 }
 
 function normalizeDept(dept) {
@@ -69,26 +88,18 @@ function normalizeDept(dept) {
 
 function excelDateToISO(value) {
   if (value === "" || value == null) return ""
-
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10)
-  }
-
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10)
   if (typeof value === "number") {
     const parsed = XLSX.SSF.parse_date_code(value)
     if (!parsed) return ""
-    const mm = String(parsed.m).padStart(2, "0")
-    const dd = String(parsed.d).padStart(2, "0")
-    return `${parsed.y}-${mm}-${dd}`
+    return `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`
   }
-
   return String(value).trim()
 }
 
 function findHeaderRow(rows) {
   let bestIndex = 0
   let bestScore = -1
-
   rows.slice(0, 20).forEach((row, idx) => {
     const normalizedCells = row.map(normalizeHeader).filter(Boolean)
     const score = normalizedCells.filter((cell) => ALL_ALIASES.includes(cell)).length
@@ -97,13 +108,34 @@ function findHeaderRow(rows) {
       bestIndex = idx
     }
   })
-
   return bestIndex
 }
 
 function findColumnIndex(headerCells, aliases) {
   const aliasSet = new Set(aliases.map(normalizeHeader))
   return headerCells.findIndex((cell) => aliasSet.has(normalizeHeader(cell)))
+}
+
+function inferCertColumnIndex(dataRows, startAt) {
+  if (!dataRows.length) return -1
+  const width = Math.max(...dataRows.map((row) => row.length), 0)
+  let bestIdx = -1
+  let bestScore = 0
+
+  for (let i = startAt; i < width; i++) {
+    let score = 0
+    for (const row of dataRows.slice(0, 200)) {
+      const cell = String(row[i] || "").trim()
+      if (!cell) continue
+      if (findCertCanonicalName(cell)) score += 2
+      if (/作業主管|操作人員|管理人|監督人|檢查員/.test(cell)) score += 1
+    }
+    if (score > bestScore) {
+      bestScore = score
+      bestIdx = i
+    }
+  }
+  return bestScore > 0 ? bestIdx : -1
 }
 
 function getCell(row, idx) {
@@ -116,7 +148,6 @@ function parseExcel(path) {
   const workbook = XLSX.readFile(path, { cellDates: true })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" })
-
   if (!aoa.length) return []
 
   const headerRowIndex = findHeaderRow(aoa)
@@ -134,19 +165,27 @@ function parseExcel(path) {
     retrain: findColumnIndex(header, HEADER_ALIASES.retrain),
   }
 
+  if (columnIndex.cert < 0) {
+    const startAt = Math.max(columnIndex.name + 1, columnIndex.dept + 1, 0)
+    columnIndex.cert = inferCertColumnIndex(dataRows, startAt)
+  }
+
   return dataRows
-    .map((row) => ({
-      factory: "台南工廠",
-      dept: normalizeDept(getCell(row, columnIndex.dept)),
-      name: String(getCell(row, columnIndex.name)).trim(),
-      certFull: normalizeCertFull(getCell(row, columnIndex.cert)),
-      cert: normalizeCert(getCell(row, columnIndex.cert)),
-      certNo: String(getCell(row, columnIndex.certNo)).trim(),
-      issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
-      expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
-      training: String(getCell(row, columnIndex.training)).trim(),
-      retrain: excelDateToISO(getCell(row, columnIndex.retrain)),
-    }))
+    .map((row) => {
+      const certFull = normalizeCertFull(getCell(row, columnIndex.cert))
+      return {
+        factory: "台南工廠",
+        dept: normalizeDept(getCell(row, columnIndex.dept)),
+        name: String(getCell(row, columnIndex.name)).trim(),
+        certFull,
+        cert: normalizeCert(certFull),
+        certNo: String(getCell(row, columnIndex.certNo)).trim(),
+        issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
+        expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
+        training: String(getCell(row, columnIndex.training)).trim(),
+        retrain: excelDateToISO(getCell(row, columnIndex.retrain)),
+      }
+    })
     .filter((row) => row.dept)
     .filter((row) => row.name || row.certNo || row.cert)
 }
