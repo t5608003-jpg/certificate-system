@@ -15,6 +15,11 @@ async function upload(){
 
  const j=await r.json()
 
+ if(!r.ok){
+  alert(j.error || "上傳失敗")
+  return
+ }
+
  document.getElementById("count").innerText=
  "目前資料筆數："+j.count
 
@@ -26,7 +31,9 @@ async function search(){
 
  const expiry=document.getElementById("expiry").value
 
- const r=await fetch(api+"/search?keyword="+keyword+"&expiry="+expiry)
+ const q=new URLSearchParams({keyword,expiry})
+
+ const r=await fetch(api+"/search?"+q.toString())
 
  const data=await r.json()
 
