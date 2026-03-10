@@ -12,20 +12,20 @@ const HEADER_ALIASES = {
 }
 
 const CERT_ABBR = {
-  乙種職業安全衛生業務主管: "乙安",
+  乙種職業安全衛生業務主管: "乙業主管",
   有機溶劑作業主管: "有機溶劑",
-  特定化學物質作業主管: "特化",
-  缺氧作業主管: "缺氧",
-  乙級鍋爐操作人員: "乙鍋",
+  特定化學物質作業主管: "特化物質",
+  缺氧作業主管: "缺氧作業",
+  乙級鍋爐操作人員: "乙級鍋爐",
   高壓氣體特定設備操作人員: "高壓氣體",
-  荷重在一公噸以上堆高機操作人員: "1噸以下堆高機",
-  小型鍋爐操作人員: "小鍋",
+  荷重在一公噸以上堆高機操作人員: "堆高機",
+  小型鍋爐操作人員: "小型鍋爐",
   防爆電氣配線施工人員: "防爆配線",
-  高空工作車操作人員: "高空作業車",
-  急救人員: "急救",
-  防火管理人: "防火",
-  保安監督人: "保安監督人",
-  保安檢查員: "保安檢查員",
+  高空工作車操作人員: "高空車",
+  急救人員: "急救人員",
+  防火管理人: "防火管理",
+  保安監督人: "保安監督",
+  保安檢查員: "保安檢查",
 }
 
 const CERT_KEYS = Object.keys(CERT_ABBR)
@@ -86,15 +86,42 @@ function normalizeDept(dept) {
   return ALLOWED_DEPTS.has(text) ? text : ""
 }
 
+function formatISODate(year, month, day) {
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+}
+
+function parseDateText(value) {
+  const text = String(value || "").trim()
+  if (!text) return ""
+
+  const rocMatch = text.match(/^(?:民國)?\s*(\d{2,3})[\/.\-年]\s*(\d{1,2})[\/.\-月]\s*(\d{1,2})/)
+  if (rocMatch) {
+    const year = Number(rocMatch[1]) + 1911
+    const month = Number(rocMatch[2])
+    const day = Number(rocMatch[3])
+    return formatISODate(year, month, day)
+  }
+
+  const adMatch = text.match(/^(\d{4})[\/.\-年]\s*(\d{1,2})[\/.\-月]\s*(\d{1,2})/)
+  if (adMatch) {
+    const year = Number(adMatch[1])
+    const month = Number(adMatch[2])
+    const day = Number(adMatch[3])
+    return formatISODate(year, month, day)
+  }
+
+  return text
+}
+
 function excelDateToISO(value) {
   if (value === "" || value == null) return ""
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10)
   if (typeof value === "number") {
     const parsed = XLSX.SSF.parse_date_code(value)
     if (!parsed) return ""
-    return `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`
+    return formatISODate(parsed.y, parsed.m, parsed.d)
   }
-  return String(value).trim()
+  return parseDateText(value)
 }
 
 function findHeaderRow(rows) {
