@@ -194,26 +194,48 @@ function parseExcel(path) {
     columnIndex.cert = inferCertColumnIndex(dataRows, startAt)
   }
 
-  return dataRows
-    .map((row) => {
-      const certFromColumn = normalizeCertFull(getCell(row, columnIndex.cert))
-      const certFallback = findCertFromRow(row)
-      const certFull = certFromColumn || certFallback.certFull
-      const cert = normalizeCert(certFromColumn) || certFallback.cert
+  const parsedRows = dataRows.map((row) => {
+    const certFromColumn = normalizeCertFull(getCell(row, columnIndex.cert))
+    const certFallback = findCertFromRow(row)
+    const certFull = certFromColumn || certFallback.certFull
+    const cert = normalizeCert(certFromColumn) || certFallback.cert
 
+    return {
+      factory: "台南工廠",
+      dept: normalizeDept(getCell(row, columnIndex.dept)),
+      name: String(getCell(row, columnIndex.name)).trim(),
+      certFull,
+      cert,
+      certNo: String(getCell(row, columnIndex.certNo)).trim(),
+      issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
+      expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
+      training: String(getCell(row, columnIndex.training)).trim(),
+      retrain: excelDateToISO(getCell(row, columnIndex.retrain)),
+    }
+  })
+
+  let lastCertFull = ""
+  let lastCert = ""
+
+  const rowsWithFilledCert = parsedRows.map((row) => {
+    if (row.certFull) {
+      lastCertFull = row.certFull
+      lastCert = row.cert || normalizeCert(row.certFull)
+      return row
+    }
+
+    if (row.certNo && lastCertFull) {
       return {
-        factory: "台南工廠",
-        dept: normalizeDept(getCell(row, columnIndex.dept)),
-        name: String(getCell(row, columnIndex.name)).trim(),
-        certFull,
-        cert,
-        certNo: String(getCell(row, columnIndex.certNo)).trim(),
-        issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
-        expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
-        training: String(getCell(row, columnIndex.training)).trim(),
-        retrain: excelDateToISO(getCell(row, columnIndex.retrain)),
+        ...row,
+        certFull: lastCertFull,
+        cert: lastCert,
       }
-    })
+    }
+
+    return row
+  })
+
+  return rowsWithFilledCert
     .filter((row) => row.dept)
     .filter((row) => row.name || row.certNo || row.cert)
 }
