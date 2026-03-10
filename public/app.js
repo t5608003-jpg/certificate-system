@@ -2,9 +2,10 @@ const api=""
 
 function statusColor(status){
 
- if(status==="合格") return "#2563eb"
- if(status==="待規劃") return "#f59e0b"
+ if(status==="合格") return "#111111"
  if(status==="已過期") return "#dc2626"
+ if(status==="待規劃") return "#f59e0b"
+ if(status==="已規劃") return "#2563eb"
 
  return "inherit"
 
