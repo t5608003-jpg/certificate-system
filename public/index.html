@@ -1,53 +1,53 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>工廠證照查詢系統</title>
-<script src="app.js"></script>
-</head>
-
-<body>
-
-<h2>工廠證照查詢系統</h2>
-
-<input type="file" id="file">
-
-<button onclick="upload()">上傳</button>
-
-<p id="count"></p>
-
-<hr>
-
-<input id="keyword" placeholder="輸入 單位 / 姓名 / 證照">
-
-<select id="expiry">
-
-<option value="">全部</option>
-<option value="month">當月到期</option>
-<option value="1">1個月內到期</option>
-<option value="2">2個月內到期</option>
-<option value="3">3個月內到期</option>
-
-</select>
-
-<button onclick="search()">查詢</button>
-
-<table border="1">
-
-<thead>
-<tr>
-<th>廠別</th>
-<th>單位/部門</th>
-<th>姓名</th>
-<th>證照</th>
-<th>複訓期限</th>
-<th>課程安排</th>
-</tr>
-</thead>
-
-<tbody id="result"></tbody>
-
-</table>
-
-</body>
+<!DOCTYPE html>␊
+<html>␊
+<head>␊
+<meta charset="utf-8">␊
+<title>工廠證照查詢系統</title>␊
+<script src="app.js"></script>␊
+</head>␊
+␊
+<body>␊
+␊
+<h2>工廠證照查詢系統</h2>␊
+␊
+<input type="file" id="file">␊
+␊
+<button onclick="upload()">上傳</button>␊
+␊
+<p id="count"></p>␊
+␊
+<hr>␊
+␊
+<input id="keyword" placeholder="輸入 單位 / 姓名 / 證照">␊
+␊
+<select id="expiry">␊
+␊
+<option value="">全部</option>␊
+<option value="0">n (當月)</option>
+<option value="1">n+1 (當月到次月)</option>
+<option value="2">n+2 (當月到次次月)</option>
+<option value="3">n+3 (當月到第三個月)</option>
+␊
+</select>␊
+␊
+<button onclick="search()">查詢</button>␊
+␊
+<table border="1">␊
+␊
+<thead>␊
+<tr>␊
+<th>廠別</th>␊
+<th>單位/部門</th>␊
+<th>姓名</th>␊
+<th>證照</th>␊
+<th>複訓期限</th>␊
+<th>課程安排</th>␊
+</tr>␊
+</thead>␊
+␊
+<tbody id="result"></tbody>␊
+␊
+</table>␊
+␊
+</body>␊
 </html>
