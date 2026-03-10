@@ -59,8 +59,19 @@ function compactText(value) {
   return String(value || "").replace(/\s+/g, "").trim()
 }
 
+
+function cleanText(value) {
+  return String(value || "")
+    .replace(/\r\n/g, " ")
+    .replace(/[\r\n]/g, " ")
+    .replace(/\\n/g, " ")
+    .replace(/\s*LF\s*/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 function normalizeCertFull(cert) {
-  return String(cert || "").trim()
+  return cleanText(cert)
 }
 
 function findCertCanonicalName(cert) {
@@ -82,7 +93,7 @@ function normalizeCert(cert) {
 }
 
 function normalizeDept(dept) {
-  const text = String(dept || "").trim()
+  const text = cleanText(dept)
   return ALLOWED_DEPTS.has(text) ? text : ""
 }
 
@@ -91,7 +102,7 @@ function formatISODate(year, month, day) {
 }
 
 function parseDateText(value) {
-  const text = String(value || "").trim()
+  const text = cleanText(value)
   if (!text) return ""
 
   const rocMatch = text.match(/^(?:民國)?\s*(\d{2,3})[\/.\-年]\s*(\d{1,2})[\/.\-月]\s*(\d{1,2})/)
@@ -152,7 +163,7 @@ function inferCertColumnIndex(dataRows, startAt) {
   for (let i = startAt; i < width; i++) {
     let score = 0
     for (const row of dataRows.slice(0, 200)) {
-      const cell = String(row[i] || "").trim()
+      const cell = cleanText(row[i])
       if (!cell) continue
       if (findCertCanonicalName(cell)) score += 2
       if (/作業主管|操作人員|管理人|監督人|檢查員/.test(cell)) score += 1
@@ -174,7 +185,7 @@ function getCell(row, idx) {
 
 
 function findCertFromRow(row) {
-  const cells = row.map((v) => String(v || "").trim()).filter(Boolean)
+  const cells = row.map((v) => cleanText(v)).filter(Boolean)
   const joined = compactText(cells.join(" "))
   if (!joined) return { certFull: "", cert: "" }
 
@@ -230,13 +241,13 @@ function parseExcel(path) {
     return {
       factory: "台南工廠",
       dept: normalizeDept(getCell(row, columnIndex.dept)),
-      name: String(getCell(row, columnIndex.name)).trim(),
+      name: cleanText(getCell(row, columnIndex.name)),
       certFull,
       cert,
-      certNo: String(getCell(row, columnIndex.certNo)).trim(),
+      certNo: cleanText(getCell(row, columnIndex.certNo)),
       issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
       expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
-      training: String(getCell(row, columnIndex.training)).trim(),
+      training: cleanText(getCell(row, columnIndex.training)),
       retrain: excelDateToISO(getCell(row, columnIndex.retrain)),
     }
   })
