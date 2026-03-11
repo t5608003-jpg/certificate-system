@@ -20,6 +20,13 @@ function statusColor(status){
  return "inherit"
 }
 
+
+function triggerGlobalCleanup(){
+ if(typeof window!=="undefined" && typeof window.__cleanupLFNodes==="function"){
+  window.__cleanupLFNodes()
+ }
+}
+
 function removePageLFNoise(){
  const walker=document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
  const targets=[]
@@ -30,6 +37,7 @@ function removePageLFNoise(){
   else if(cleaned!==node.nodeValue) node.nodeValue=cleaned
  }
  targets.forEach(n=>n.parentNode && n.parentNode.removeChild(n))
+ triggerGlobalCleanup()
 }
 
 async function upload(){
@@ -76,6 +84,7 @@ async function search(){
  `
   tbody.appendChild(tr)
  })
+ triggerGlobalCleanup()
 }
 
 async function loadDetail(){
@@ -96,6 +105,7 @@ async function loadDetail(){
  <tr><td>已複訓日</td><td>${cleanText(d.retrain)}</td></tr>
  <tr><td>複訓期限</td><td>${cleanText(d.expiry)}</td></tr>
  `
+ triggerGlobalCleanup()
 }
 
 async function saveCourse(){
