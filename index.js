@@ -5,6 +5,7 @@ const cors=require("cors")
 const parseExcel=require("./excelParser")
 const {setCourse,getCourses}=require("./courseStore")
 const {loadEmployees,saveEmployees}=require("./employeeStore")
+const {loadUploadMeta,saveUploadMeta}=require("./uploadMetaStore")
 
 const app=express()
 
@@ -19,6 +20,7 @@ app.use(express.static("public",{etag:false,lastModified:false,maxAge:0}))
 const upload=multer({dest:"uploads/"})
 
 let employees=loadEmployees()
+let uploadMeta=loadUploadMeta()
 
 function parseDate(str){
  if(!str) return null
@@ -93,7 +95,15 @@ app.post("/upload",upload.single("file"),(req,res)=>{
  employees=parseExcel(req.file.path)
  saveEmployees(employees)
 
- res.json({ count:employees.length })
+ uploadMeta={fileName:cleanDisplayText(req.file.originalname)}
+ saveUploadMeta(uploadMeta)
+
+ res.json({ count:employees.length, fileName:uploadMeta.fileName })
+})
+
+
+app.get("/upload-meta",(req,res)=>{
+ res.json({fileName:cleanDisplayText(uploadMeta.fileName)})
 })
 
 app.get("/search",(req,res)=>{
