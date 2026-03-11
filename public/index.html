@@ -2,7 +2,18 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>工廠證照查詢系統</title>
+<style>
+body{font-family:Arial,"Noto Sans TC",sans-serif;margin:12px;line-height:1.4}
+h2{font-size:clamp(24px,6vw,36px);margin:8px 0 12px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select,button{font-size:clamp(16px,4.2vw,18px);padding:6px 8px}
+#attachment{font-size:clamp(15px,4vw,17px);margin:10px 0;color:#333}
+.table-wrap{overflow:auto}
+table{border-collapse:collapse;min-width:680px}
+th,td{font-size:clamp(14px,3.8vw,17px);padding:4px 6px;white-space:nowrap}
+</style>
 <script>
 (function(){
   function cleanText(v){
@@ -41,10 +52,14 @@
 
 <body>
 <h2>工廠證照查詢系統</h2>
+<div class="controls">
 <input type="file" id="file">
 <button onclick="upload()">上傳</button>
+</div>
 <p id="count"></p>
+<p id="attachment">附件：尚未上傳檔案</p>
 <hr>
+<div class="controls">
 <input id="keyword" placeholder="輸入 單位 / 姓名 / 證照">
 <select id="expiry">
 <option value="">全部</option>
@@ -54,6 +69,8 @@
 <option value="3">到期3個月</option>
 </select>
 <button onclick="search()">查詢</button>
+</div>
+<div class="table-wrap">
 <table border="1">
 <thead>
 <tr>
@@ -67,5 +84,6 @@
 </thead>
 <tbody id="result"></tbody>
 </table>
+</div>
 </body>
 </html>
