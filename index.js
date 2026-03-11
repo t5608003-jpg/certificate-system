@@ -39,6 +39,33 @@ function isPlanned(course){
  return !!(course && (course.date || course.place))
 }
 
+function cleanDisplayText(value){
+ return String(value || "")
+  .replace(/_x000D_/gi," ")
+  .replace(/&#10;|&#13;/gi," ")
+  .replace(/\r\n/g," ")
+  .replace(/[\r\n\t]/g," ")
+  .replace(/\\r|\\n|\\t/g," ")
+  .replace(/\s*LF\s*/gi," ")
+  .replace(/\s+/g," ")
+  .trim()
+}
+
+function sanitizeEmployeeForResponse(row){
+ return {
+  ...row,
+  dept:cleanDisplayText(row.dept),
+  name:cleanDisplayText(row.name),
+  certFull:cleanDisplayText(row.certFull),
+  cert:cleanDisplayText(row.cert),
+  certNo:cleanDisplayText(row.certNo),
+  issueDate:cleanDisplayText(row.issueDate),
+  expiry:cleanDisplayText(row.expiry),
+  training:cleanDisplayText(row.training),
+  retrain:cleanDisplayText(row.retrain),
+ }
+}
+
 function courseStatus(expiry,course){
  if(isPlanned(course)) return "已規劃"
 
@@ -79,23 +106,25 @@ app.get("/search",(req,res)=>{
 
  let result=employees
   .filter(e=>{
-   const text=(e.factory+e.dept+e.name+(e.cert||"")+(e.certFull||"")).toLowerCase()
+   const cleaned=sanitizeEmployeeForResponse(e)
+   const text=(cleaned.factory+cleaned.dept+cleaned.name+(cleaned.cert||"")+(cleaned.certFull||"")).toLowerCase()
    if(!text.includes(keywordText)) return false
 
    if(!useMonthFilter) return true
-   if(!e.name || !e.expiry) return false
+   if(!cleaned.name || !cleaned.expiry) return false
 
-   const exp=parseDate(e.expiry)
+   const exp=parseDate(cleaned.expiry)
    if(!exp) return false
 
    return exp>=rangeStart && exp<=rangeEnd
   })
   .map(r=>{
-   const course=courses[r.certNo]
-   const status=courseStatus(r.expiry,course)
+   const cleaned=sanitizeEmployeeForResponse(r)
+   const course=courses[cleaned.certNo] || courses[r.certNo]
+   const status=courseStatus(cleaned.expiry,course)
    return{
-    ...r,
-    cert:r.cert || r.certFull || "",
+    ...cleaned,
+    cert:cleaned.cert || cleaned.certFull || "",
     status,
     course
    }
@@ -111,9 +140,11 @@ app.get("/search",(req,res)=>{
 app.get("/detail/:certNo",(req,res)=>{
  const certNo=req.params.certNo
  const emp=employees.find(e=>e.certNo==certNo)
- const course=getCourses()[certNo]
- const status=emp ? courseStatus(emp.expiry,course) : "合格"
- res.json({...emp,course,status})
+ const cleaned=emp ? sanitizeEmployeeForResponse(emp) : undefined
+ const allCourses=getCourses()
+ const course=allCourses[certNo] || allCourses[cleaned?.certNo]
+ const status=cleaned ? courseStatus(cleaned.expiry,course) : "合格"
+ res.json({...cleaned,course,status})
 })
 
 app.post("/course",(req,res)=>{
