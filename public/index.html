@@ -1,53 +1,71 @@
-<!DOCTYPE html>␊
-<html>␊
-<head>␊
-<meta charset="utf-8">␊
-<title>工廠證照查詢系統</title>␊
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>工廠證照查詢系統</title>
+<script>
+(function(){
+  function cleanText(v){
+    return String(v||"")
+      .replace(/\s*LF\s*/gi," ")
+      .replace(/_x000D_/gi," ")
+      .replace(/&#10;|&#13;/gi," ")
+      .replace(/\\r|\\n|\\t/g," ")
+      .replace(/[\r\n\t]/g," ")
+      .replace(/\s+/g," ")
+      .trim();
+  }
+  function cleanupLFNodes(){
+    var root=document.body || document.documentElement;
+    if(!root) return;
+    var walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    var remove=[];
+    while(walker.nextNode()){
+      var n=walker.currentNode;
+      var cleaned=cleanText(n.nodeValue);
+      if(!cleaned) remove.push(n);
+      else if(cleaned!==n.nodeValue) n.nodeValue=cleaned;
+    }
+    remove.forEach(function(n){ if(n.parentNode) n.parentNode.removeChild(n); });
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded", cleanupLFNodes);
+  }else{
+    cleanupLFNodes();
+  }
+  window.__cleanupLFNodes = cleanupLFNodes;
+})();
+</script>
 <script src="app.js?v=20260311"></script>
-</head>␊
-␊
-<body>␊
-␊
-<h2>工廠證照查詢系統</h2>␊
-␊
-<input type="file" id="file">␊
-␊
-<button onclick="upload()">上傳</button>␊
-␊
-<p id="count"></p>␊
-␊
-<hr>␊
-␊
-<input id="keyword" placeholder="輸入 單位 / 姓名 / 證照">␊
-␊
-<select id="expiry">␊
-␊
-<option value="">全部</option>␊
+</head>
+
+<body>
+<h2>工廠證照查詢系統</h2>
+<input type="file" id="file">
+<button onclick="upload()">上傳</button>
+<p id="count"></p>
+<hr>
+<input id="keyword" placeholder="輸入 單位 / 姓名 / 證照">
+<select id="expiry">
+<option value="">全部</option>
 <option value="0">當月到期</option>
 <option value="1">到期1個月</option>
 <option value="2">到期2個月</option>
 <option value="3">到期3個月</option>
-␊
-</select>␊
-␊
-<button onclick="search()">查詢</button>␊
-␊
-<table border="1">␊
-␊
-<thead>␊
-<tr>␊
-<th>廠別</th>␊
-<th>單位/部門</th>␊
-<th>姓名</th>␊
-<th>證照</th>␊
-<th>複訓期限</th>␊
-<th>課程安排</th>␊
-</tr>␊
-</thead>␊
-␊
-<tbody id="result"></tbody>␊
-␊
-</table>␊
-␊
-</body>␊
+</select>
+<button onclick="search()">查詢</button>
+<table border="1">
+<thead>
+<tr>
+<th>廠別</th>
+<th>單位/部門</th>
+<th>姓名</th>
+<th>證照</th>
+<th>複訓期限</th>
+<th>課程安排</th>
+</tr>
+</thead>
+<tbody id="result"></tbody>
+</table>
+</body>
 </html>
