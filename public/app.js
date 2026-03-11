@@ -21,6 +21,24 @@ function statusColor(status){
 }
 
 
+
+function setAttachmentName(name){
+ const el=document.getElementById("attachment")
+ if(!el) return
+ const cleaned=cleanText(name)
+ el.innerText=cleaned ? `附件：${cleaned}` : "附件：尚未上傳檔案"
+}
+
+async function loadUploadMeta(){
+ try{
+  const r=await fetch(api+"/upload-meta")
+  const j=await r.json()
+  setAttachmentName(j.fileName)
+ }catch(_){
+  setAttachmentName("")
+ }
+}
+
 function triggerGlobalCleanup(){
  if(typeof window!=="undefined" && typeof window.__cleanupLFNodes==="function"){
   window.__cleanupLFNodes()
@@ -54,6 +72,7 @@ async function upload(){
  }
 
  document.getElementById("count").innerText="目前資料筆數："+j.count
+ setAttachmentName(j.fileName)
 }
 
 async function search(){
@@ -124,5 +143,8 @@ async function saveCourse(){
 }
 
 if (typeof window !== "undefined") {
- window.addEventListener("DOMContentLoaded", removePageLFNoise)
+ window.addEventListener("DOMContentLoaded", ()=>{
+  removePageLFNoise()
+  loadUploadMeta()
+ })
 }
