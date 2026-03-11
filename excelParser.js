@@ -62,9 +62,11 @@ function compactText(value) {
 
 function cleanText(value) {
   return String(value || "")
+    .replace(/_x000D_/gi, " ")
+    .replace(/&#10;|&#13;/gi, " ")
     .replace(/\r\n/g, " ")
-    .replace(/[\r\n]/g, " ")
-    .replace(/\\n/g, " ")
+    .replace(/[\r\n\t]/g, " ")
+    .replace(/\\r|\\n|\\t/g, " ")
     .replace(/\s*LF\s*/gi, " ")
     .replace(/\s+/g, " ")
     .trim()
