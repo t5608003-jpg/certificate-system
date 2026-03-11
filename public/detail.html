@@ -1,25 +1,51 @@
-<!DOCTYPE html>␊
-<html>␊
-<head>␊
-<meta charset="utf-8">␊
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+(function(){
+  function cleanText(v){
+    return String(v||"")
+      .replace(/\s*LF\s*/gi," ")
+      .replace(/_x000D_/gi," ")
+      .replace(/&#10;|&#13;/gi," ")
+      .replace(/\\r|\\n|\\t/g," ")
+      .replace(/[\r\n\t]/g," ")
+      .replace(/\s+/g," ")
+      .trim();
+  }
+  function cleanupLFNodes(){
+    var root=document.body || document.documentElement;
+    if(!root) return;
+    var walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    var remove=[];
+    while(walker.nextNode()){
+      var n=walker.currentNode;
+      var cleaned=cleanText(n.nodeValue);
+      if(!cleaned) remove.push(n);
+      else if(cleaned!==n.nodeValue) n.nodeValue=cleaned;
+    }
+    remove.forEach(function(n){ if(n.parentNode) n.parentNode.removeChild(n); });
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded", cleanupLFNodes);
+  }else{
+    cleanupLFNodes();
+  }
+  window.__cleanupLFNodes = cleanupLFNodes;
+})();
+</script>
 <script src="app.js?v=20260311"></script>
-</head>␊
-␊
-<body onload="loadDetail()">␊
-␊
-<h3>證照詳細資料</h3>␊
-␊
-<table border="1" id="detail"></table>␊
-␊
-<h4>課程安排</h4>␊
-␊
-日期␊
-<input type="date" id="date">␊
-␊
-地點␊
-<input id="place">␊
-␊
-<button onclick="saveCourse()">儲存</button>␊
-␊
-</body>␊
+</head>
+
+<body onload="loadDetail()">
+<h3>證照詳細資料</h3>
+<table border="1" id="detail"></table>
+<h4>課程安排</h4>
+日期
+<input type="date" id="date">
+地點
+<input id="place">
+<button onclick="saveCourse()">儲存</button>
+</body>
 </html>
