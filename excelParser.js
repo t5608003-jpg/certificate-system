@@ -31,7 +31,7 @@ const CERT_ABBR = {
 const CERT_KEYS = Object.keys(CERT_ABBR)
 
 const CERT_PATTERNS = {
-  乙種職業安全衛生業務主管: [/乙種.*職業安全衛生.*(業務)?主管/, /職業安全衛生.*乙種/],
+  乙種職業安全衛生業務主管: [/乙種.*職業安全衛生.*(業務)?主.?管/, /職業安全衛生.*乙種/, /乙.*職.*安.*主.?管/, /職安.*乙種/],
   有機溶劑作業主管: [/有機溶劑.*作業主管/, /作業主管.*有機溶劑/],
   特定化學物質作業主管: [/特定化學物質.*作業主管/, /特化(物質)?/],
   缺氧作業主管: [/缺氧.*作業主管/, /缺氧作業/],
@@ -112,6 +112,13 @@ function findCertCanonicalName(cert) {
     if (source.includes(normalizedName) || normalizedName.includes(source)) return fullName
   }
   return findCertByPattern(cert)
+}
+
+function inferCertByCertNo(certNo) {
+  const text = cleanText(certNo)
+  if (!text) return ""
+  if (/技術士證總編號\s*\d{2,3}-\d+/.test(text)) return "乙種職業安全衛生業務主管"
+  return ""
 }
 
 function normalizeCert(cert) {
@@ -276,8 +283,9 @@ function parseExcel(path) {
     }
 
     const certFallback = findCertFromRow(row)
-    const certFull = certFromColumn || certFallback.certFull
-    const cert = normalizeCert(certFromColumn) || certFallback.cert
+    const hintedCert = inferCertByCertNo(certNoValue)
+    const certFull = certFromColumn || certFallback.certFull || hintedCert
+    const cert = normalizeCert(certFromColumn || hintedCert) || certFallback.cert
 
     return {
       factory: "台南工廠",
