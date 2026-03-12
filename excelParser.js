@@ -183,13 +183,14 @@ function findColumnIndex(headerCells, aliases) {
   return headerCells.findIndex((cell) => aliasSet.has(normalizeHeader(cell)))
 }
 
-function inferCertColumnIndex(dataRows, startAt) {
+function inferCertColumnIndex(dataRows, startAt, excludedIdx = new Set()) {
   if (!dataRows.length) return -1
   const width = Math.max(...dataRows.map((row) => row.length), 0)
   let bestIdx = -1
   let bestScore = 0
 
   for (let i = startAt; i < width; i++) {
+    if (excludedIdx.has(i)) continue
     let score = 0
     for (const row of dataRows.slice(0, 200)) {
       const cell = cleanText(row[i])
@@ -263,11 +264,17 @@ function parseExcel(path) {
 
   if (columnIndex.cert < 0) {
     const startAt = Math.max(columnIndex.name + 1, columnIndex.dept + 1, 0)
-    columnIndex.cert = inferCertColumnIndex(dataRows, startAt)
+    columnIndex.cert = inferCertColumnIndex(dataRows, startAt, new Set([columnIndex.certNo]))
   }
 
   const parsedRows = dataRows.map((row) => {
-    const certFromColumn = normalizeCertFull(getCell(row, columnIndex.cert))
+    const certNoValue = cleanText(getCell(row, columnIndex.certNo))
+    let certFromColumn = normalizeCertFull(getCell(row, columnIndex.cert))
+
+    if (certFromColumn && certNoValue && certFromColumn === certNoValue) {
+      certFromColumn = ""
+    }
+
     const certFallback = findCertFromRow(row)
     const certFull = certFromColumn || certFallback.certFull
     const cert = normalizeCert(certFromColumn) || certFallback.cert
@@ -278,7 +285,7 @@ function parseExcel(path) {
       name: cleanText(getCell(row, columnIndex.name)),
       certFull,
       cert,
-      certNo: cleanText(getCell(row, columnIndex.certNo)),
+      certNo: certNoValue,
       issueDate: excelDateToISO(getCell(row, columnIndex.issueDate)),
       expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
       training: cleanText(getCell(row, columnIndex.training)),
