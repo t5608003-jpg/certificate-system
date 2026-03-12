@@ -20,8 +20,6 @@ function statusColor(status){
  return "inherit"
 }
 
-
-
 function setAttachmentName(name){
  const el=document.getElementById("attachment")
  if(!el) return
@@ -58,6 +56,23 @@ function removePageLFNoise(){
  triggerGlobalCleanup()
 }
 
+function getCurrentFilters(){
+ return {
+  keyword: document.getElementById("keyword")?.value || "",
+  expiry: document.getElementById("expiry")?.value || "",
+ }
+}
+
+function buildDetailUrl(certNo){
+ const {keyword,expiry}=getCurrentFilters()
+ const q=new URLSearchParams({
+  certNo: cleanText(certNo),
+  keyword,
+  expiry,
+ })
+ return `detail.html?${q.toString()}`
+}
+
 async function upload(){
  const file=document.getElementById("file").files[0]
  const form=new FormData()
@@ -76,8 +91,7 @@ async function upload(){
 }
 
 async function search(){
- const keyword=document.getElementById("keyword").value
- const expiry=document.getElementById("expiry").value
+ const {keyword,expiry}=getCurrentFilters()
 
  const q=new URLSearchParams({keyword,expiry})
  const r=await fetch(api+"/search?"+q.toString())
@@ -88,7 +102,6 @@ async function search(){
 
  data.forEach(d=>{
   const tr=document.createElement("tr")
-  const certNo=encodeURIComponent(cleanText(d.certNo))
   tr.innerHTML=`
  <td>${cleanText(d.factory)}</td>
  <td>${cleanText(d.dept)}</td>
@@ -96,7 +109,7 @@ async function search(){
  <td>${cleanText(d.cert)}</td>
  <td>${cleanText(d.expiry)}</td>
  <td>
- <a href="detail.html?certNo=${certNo}">
+ <a href="${buildDetailUrl(d.certNo)}">
  <span style="color:${statusColor(cleanText(d.status))};font-weight:600;">${cleanText(d.status)}</span>
  </a>
  </td>
@@ -110,7 +123,7 @@ async function loadDetail(){
  const params=new URLSearchParams(location.search)
  const certNo=params.get("certNo")
 
- const r=await fetch("/detail/"+certNo)
+ const r=await fetch("/detail/"+encodeURIComponent(certNo || ""))
  const d=await r.json()
 
  const table=document.getElementById("detail")
@@ -129,6 +142,18 @@ async function loadDetail(){
  triggerGlobalCleanup()
 }
 
+function backToResult(){
+ const params=new URLSearchParams(location.search)
+ const keyword=params.get("keyword") || ""
+ const expiry=params.get("expiry") || ""
+ const q=new URLSearchParams({keyword,expiry,runSearch:"1"})
+ location.href=`index.html?${q.toString()}`
+}
+
+function resetToSearch(){
+ location.href="index.html"
+}
+
 async function saveCourse(){
  const params=new URLSearchParams(location.search)
  const certNo=params.get("certNo")
@@ -144,9 +169,27 @@ async function saveCourse(){
  alert("儲存成功")
 }
 
+function restoreSearchFromQuery(){
+ const params=new URLSearchParams(location.search)
+ const keyword=params.get("keyword")
+ const expiry=params.get("expiry")
+ const runSearch=params.get("runSearch")
+
+ if(keyword!==null && document.getElementById("keyword")){
+  document.getElementById("keyword").value=keyword
+ }
+ if(expiry!==null && document.getElementById("expiry")){
+  document.getElementById("expiry").value=expiry
+ }
+ if(runSearch==="1"){
+  search()
+ }
+}
+
 if (typeof window !== "undefined") {
  window.addEventListener("DOMContentLoaded", ()=>{
   removePageLFNoise()
   loadUploadMeta()
+  restoreSearchFromQuery()
  })
 }
