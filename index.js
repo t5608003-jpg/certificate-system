@@ -60,13 +60,34 @@ function cleanDisplayText(value){
 
 function decodeUploadFileName(name){
  const raw=String(name || "")
- try{
-  const decoded=Buffer.from(raw,"latin1").toString("utf8")
-  if(decoded.includes("�")) return cleanDisplayText(raw)
-  return cleanDisplayText(decoded)
- }catch(_){
-  return cleanDisplayText(raw)
+
+ const candidates=[]
+ const push=(v)=>{ if(v && !candidates.includes(v)) candidates.push(v) }
+
+ push(raw)
+
+ try{ push(Buffer.from(raw,"latin1").toString("utf8")) }catch(_){ }
+ try{ push(decodeURIComponent(escape(raw))) }catch(_){ }
+
+ function score(text){
+  const t=cleanDisplayText(text)
+  const cjk=(t.match(/[一-鿿]/g)||[]).length
+  const bad=(t.match(/[ÃÂæçéð]/g)||[]).length
+  const replacement=(t.match(/�/g)||[]).length
+  return cjk*3 - bad*2 - replacement*4
  }
+
+ let best=raw
+ let bestScore=-9999
+ for(const c of candidates){
+  const sc=score(c)
+  if(sc>bestScore){
+   bestScore=sc
+   best=c
+  }
+ }
+
+ return cleanDisplayText(best)
 }
 
 function sanitizeEmployeeForResponse(row){
