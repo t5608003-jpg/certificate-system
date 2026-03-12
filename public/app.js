@@ -123,6 +123,8 @@ async function loadDetail(){
  <tr><td>發證日</td><td>${cleanText(d.issueDate)}</td></tr>
  <tr><td>已複訓日</td><td>${cleanText(d.retrain)}</td></tr>
  <tr><td>複訓期限</td><td>${cleanText(d.expiry)}</td></tr>
+ <tr><td>課程安排日期</td><td>${cleanText(d.course?.date)}</td></tr>
+ <tr><td>課程安排地點</td><td>${cleanText(d.course?.place)}</td></tr>
  `
  triggerGlobalCleanup()
 }
