@@ -30,6 +30,24 @@ const CERT_ABBR = {
 
 const CERT_KEYS = Object.keys(CERT_ABBR)
 
+const CERT_PATTERNS = {
+  乙種職業安全衛生業務主管: [/乙種.*職業安全衛生.*(業務)?主管/, /職業安全衛生.*乙種/],
+  有機溶劑作業主管: [/有機溶劑.*作業主管/, /作業主管.*有機溶劑/],
+  特定化學物質作業主管: [/特定化學物質.*作業主管/, /特化(物質)?/],
+  缺氧作業主管: [/缺氧.*作業主管/, /缺氧作業/],
+  乙級鍋爐操作人員: [/乙級鍋爐.*操作人員/, /乙級鍋爐/],
+  高壓氣體特定設備操作人員: [/高壓氣體.*特定設備.*操作人員/, /高壓氣體/],
+  荷重在一公噸以上堆高機操作人員: [/堆高機.*操作人員/, /荷重.*堆高機/, /堆高機/],
+  小型鍋爐操作人員: [/小型鍋爐.*操作人員/, /小型鍋爐/],
+  防爆電氣配線施工人員: [/防爆.*配線/, /防爆配線/],
+  高空工作車操作人員: [/高空工作車.*操作人員/, /高空車/],
+  急救人員: [/急救人員/, /急救/],
+  防火管理人: [/防火管理人/, /防火管理/],
+  保安監督人: [/保安監督人/, /保安監督/],
+  保安檢查員: [/保安檢查員/, /保安檢查/],
+}
+
+
 const ALLOWED_DEPTS = new Set([
   "副廠長",
   "倉管課",
@@ -76,6 +94,15 @@ function normalizeCertFull(cert) {
   return cleanText(cert)
 }
 
+function findCertByPattern(cert) {
+  const source = cleanText(cert)
+  if (!source) return ""
+  for (const [fullName, patterns] of Object.entries(CERT_PATTERNS)) {
+    if (patterns.some((p) => p.test(source))) return fullName
+  }
+  return ""
+}
+
 function findCertCanonicalName(cert) {
   const source = compactText(cert)
   if (!source) return ""
@@ -84,7 +111,7 @@ function findCertCanonicalName(cert) {
     if (source === normalizedName) return fullName
     if (source.includes(normalizedName) || normalizedName.includes(source)) return fullName
   }
-  return ""
+  return findCertByPattern(cert)
 }
 
 function normalizeCert(cert) {
@@ -196,6 +223,11 @@ function findCertFromRow(row) {
     if (joined.includes(normalizedName)) {
       return { certFull: fullName, cert: CERT_ABBR[fullName] || fullName }
     }
+  }
+
+  const byPattern = findCertByPattern(cells.join(" "))
+  if (byPattern) {
+    return { certFull: byPattern, cert: CERT_ABBR[byPattern] || byPattern }
   }
 
   for (const [fullName, abbr] of Object.entries(CERT_ABBR)) {
