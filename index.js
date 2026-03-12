@@ -57,6 +57,18 @@ function cleanDisplayText(value){
   .trim()
 }
 
+
+function decodeUploadFileName(name){
+ const raw=String(name || "")
+ try{
+  const decoded=Buffer.from(raw,"latin1").toString("utf8")
+  if(decoded.includes("�")) return cleanDisplayText(raw)
+  return cleanDisplayText(decoded)
+ }catch(_){
+  return cleanDisplayText(raw)
+ }
+}
+
 function sanitizeEmployeeForResponse(row){
  return {
   ...row,
@@ -95,7 +107,7 @@ app.post("/upload",upload.single("file"),(req,res)=>{
  employees=parseExcel(req.file.path)
  saveEmployees(employees)
 
- uploadMeta={fileName:cleanDisplayText(req.file.originalname)}
+ uploadMeta={fileName:decodeUploadFileName(req.file.originalname)}
  saveUploadMeta(uploadMeta)
 
  res.json({ count:employees.length, fileName:uploadMeta.fileName })
