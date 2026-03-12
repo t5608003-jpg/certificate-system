@@ -90,6 +90,24 @@ function decodeUploadFileName(name){
  return cleanDisplayText(best)
 }
 
+
+function fillMissingCert(row){
+ const cert=cleanDisplayText(row.cert)
+ const certFull=cleanDisplayText(row.certFull)
+ if(cert || certFull) return row
+
+ const certNo=cleanDisplayText(row.certNo)
+ if(/技術士證總編號\s*\d{2,3}-\d+/.test(certNo)){
+  return {
+   ...row,
+   certFull:"乙種職業安全衛生業務主管",
+   cert:"乙業主管",
+  }
+ }
+
+ return row
+}
+
 function sanitizeEmployeeForResponse(row){
  return {
   ...row,
@@ -153,7 +171,7 @@ app.get("/search",(req,res)=>{
 
  let result=employees
   .filter(e=>{
-   const cleaned=sanitizeEmployeeForResponse(e)
+   const cleaned=fillMissingCert(sanitizeEmployeeForResponse(e))
    const text=(cleaned.factory+cleaned.dept+cleaned.name+(cleaned.cert||"")+(cleaned.certFull||"")).toLowerCase()
    if(!text.includes(keywordText)) return false
 
@@ -166,7 +184,7 @@ app.get("/search",(req,res)=>{
    return exp>=rangeStart && exp<=rangeEnd
   })
   .map(r=>{
-   const cleaned=sanitizeEmployeeForResponse(r)
+   const cleaned=fillMissingCert(sanitizeEmployeeForResponse(r))
    const course=courses[cleaned.certNo] || courses[r.certNo]
    const status=courseStatus(cleaned.expiry,course)
    return{
@@ -187,7 +205,7 @@ app.get("/search",(req,res)=>{
 app.get("/detail/:certNo",(req,res)=>{
  const certNo=req.params.certNo
  const emp=employees.find(e=>e.certNo==certNo)
- const cleaned=emp ? sanitizeEmployeeForResponse(emp) : undefined
+ const cleaned=emp ? fillMissingCert(sanitizeEmployeeForResponse(emp)) : undefined
  const allCourses=getCourses()
  const course=allCourses[certNo] || allCourses[cleaned?.certNo]
  const status=cleaned ? courseStatus(cleaned.expiry,course) : "合格"
