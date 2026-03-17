@@ -26,6 +26,7 @@ const CERT_ABBR = {
   防火管理人: "防火管理",
   保安監督人: "保安監督",
   保安檢查員: "保安檢查",
+  使用起重機具從事吊掛作業人員: "吊掛作業",
 }
 
 const CERT_KEYS = Object.keys(CERT_ABBR)
@@ -45,6 +46,7 @@ const CERT_PATTERNS = {
   防火管理人: [/防火管理人/, /防火管理/],
   保安監督人: [/保安監督人/, /保安監督/],
   保安檢查員: [/保安檢查員/, /保安檢查/],
+  使用起重機具從事吊掛作業人員: [/使用起重機具從事吊掛作業人員/, /起重機具.*吊掛作業/, /吊掛作業/],
 }
 
 
@@ -54,6 +56,7 @@ const ALLOWED_DEPTS = new Set([
   "倉管課A",
   "倉管課B",
   "職安課",
+  "廠務課",
   "管理課",
   "技術課",
   "溶劑業務課",
@@ -117,8 +120,17 @@ function findCertCanonicalName(cert) {
 function inferCertByCertNo(certNo) {
   const text = cleanText(certNo)
   if (!text) return ""
-  if (/技術士證總編號\s*\d{2,3}-\d+/.test(text)) return "乙種職業安全衛生業務主管"
-  return ""
+
+  const certNoRules = [
+    { pattern: /中職甲訓\d+字第\d+號(?:\(補\))?/, cert: "乙種職業安全衛生業務主管" },
+    { pattern: /勞安管勞員字第\d+號/, cert: "乙種職業安全衛生業務主管" },
+    { pattern: /嘉市工業字第\d+-\d+號?/, cert: "乙種職業安全衛生業務主管" },
+    { pattern: /技術士證總編號\s*\d{2,3}-\d+/, cert: "乙種職業安全衛生業務主管" },
+    { pattern: /^110S\d+$/, cert: "乙種職業安全衛生業務主管" },
+  ]
+
+  const matched = certNoRules.find((r) => r.pattern.test(text))
+  return matched ? matched.cert : ""
 }
 
 function normalizeCert(cert) {
@@ -284,8 +296,9 @@ function parseExcel(path) {
 
     const certFallback = findCertFromRow(row)
     const hintedCert = inferCertByCertNo(certNoValue)
-    const certFull = certFromColumn || certFallback.certFull || hintedCert
-    const cert = normalizeCert(certFromColumn || hintedCert) || certFallback.cert
+    const certSource = certFromColumn || certFallback.certFull || hintedCert
+    const certFull = certSource
+    const cert = normalizeCert(certSource) || certFallback.cert
 
     return {
       factory: "台南工廠",
