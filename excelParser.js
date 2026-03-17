@@ -339,13 +339,17 @@ function parseExcel(path) {
 
   const withFilledCert = parsedRows.map((row) => {
     if (row.certFull) {
-      lastCertFull = row.certFull
-      lastCert = row.cert || normalizeCert(row.certFull)
-      canFillDown = row._certSourceType !== "hint"
+      if (row._certSourceType !== "hint") {
+        lastCertFull = row.certFull
+        lastCert = row.cert || normalizeCert(row.certFull)
+        canFillDown = true
+      }
       return row
     }
 
-    if (canFillDown && row.certNo && lastCertFull) {
+    const hasRowSignal = row.certNo || row.expiry || row.issueDate || row.retrain || row.training
+
+    if (canFillDown && row.dept && row.name && hasRowSignal && lastCertFull) {
       return {
         ...row,
         certFull: lastCertFull,
