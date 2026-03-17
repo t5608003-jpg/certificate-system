@@ -50,6 +50,10 @@ const CERT_PATTERNS = {
 }
 
 
+const DEPT_ALIASES = {
+  廠副廠長: "副廠長",
+}
+
 const ALLOWED_DEPTS = new Set([
   "副廠長",
   "倉管課",
@@ -125,8 +129,8 @@ function inferCertByCertNo(certNo) {
     { pattern: /中職甲訓\d+字第\d+號(?:\(補\))?/, cert: "乙種職業安全衛生業務主管" },
     { pattern: /勞安管勞員字第\d+號/, cert: "乙種職業安全衛生業務主管" },
     { pattern: /嘉市工業字第\d+-\d+號?/, cert: "乙種職業安全衛生業務主管" },
-    { pattern: /技術士證總編號\s*\d{2,3}-\d+/, cert: "乙種職業安全衛生業務主管" },
     { pattern: /^110S\d+$/, cert: "乙種職業安全衛生業務主管" },
+    { pattern: /安基小鍋證字第\d+號?/, cert: "小型鍋爐操作人員" },
   ]
 
   const matched = certNoRules.find((r) => r.pattern.test(text))
@@ -142,7 +146,8 @@ function normalizeCert(cert) {
 
 function normalizeDept(dept) {
   const text = cleanText(dept)
-  return ALLOWED_DEPTS.has(text) ? text : ""
+  const normalized = DEPT_ALIASES[text] || text
+  return ALLOWED_DEPTS.has(normalized) ? normalized : ""
 }
 
 function formatISODate(year, month, day) {
@@ -314,28 +319,7 @@ function parseExcel(path) {
     }
   })
 
-  let lastCertFull = ""
-  let lastCert = ""
-
-  const rowsWithFilledCert = parsedRows.map((row) => {
-    if (row.certFull) {
-      lastCertFull = row.certFull
-      lastCert = row.cert || normalizeCert(row.certFull)
-      return row
-    }
-
-    if (row.certNo && lastCertFull) {
-      return {
-        ...row,
-        certFull: lastCertFull,
-        cert: lastCert,
-      }
-    }
-
-    return row
-  })
-
-  return rowsWithFilledCert
+  return parsedRows
     .filter((row) => row.dept)
     .filter((row) => row.name || row.certNo || row.cert)
 }
