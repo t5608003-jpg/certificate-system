@@ -97,7 +97,15 @@ function fillMissingCert(row){
  if(cert || certFull) return row
 
  const certNo=cleanDisplayText(row.certNo)
- if(/技術士證總編號\s*\d{2,3}-\d+/.test(certNo)){
+ const is乙業主管 = [
+  /中職甲訓\d+字第\d+號(?:\(補\))?/,
+  /勞安管勞員字第\d+號/,
+  /嘉市工業字第\d+-\d+號?/,
+  /技術士證總編號\s*\d{2,3}-\d+/,
+  /^110S\d+$/,
+ ].some((p) => p.test(certNo))
+
+ if(is乙業主管){
   return {
    ...row,
    certFull:"乙種職業安全衛生業務主管",
