@@ -129,7 +129,6 @@ function inferCertByCertNo(certNo) {
     { pattern: /中職甲訓\d+字第\d+號(?:\(補\))?/, cert: "乙種職業安全衛生業務主管" },
     { pattern: /勞安管勞員字第\d+號/, cert: "乙種職業安全衛生業務主管" },
     { pattern: /嘉市工業字第\d+-\d+號?/, cert: "乙種職業安全衛生業務主管" },
-    { pattern: /^110S\d+$/, cert: "乙種職業安全衛生業務主管" },
     { pattern: /安基小鍋證字第\d+號?/, cert: "小型鍋爐操作人員" },
   ]
 
@@ -301,7 +300,21 @@ function parseExcel(path) {
 
     const certFallback = findCertFromRow(row)
     const hintedCert = inferCertByCertNo(certNoValue)
-    const certSource = certFromColumn || certFallback.certFull || hintedCert
+
+    let certSourceType = ""
+    let certSource = ""
+
+    if (certFromColumn) {
+      certSource = certFromColumn
+      certSourceType = "column"
+    } else if (certFallback.certFull) {
+      certSource = certFallback.certFull
+      certSourceType = "fallback"
+    } else if (hintedCert) {
+      certSource = hintedCert
+      certSourceType = "hint"
+    }
+
     const certFull = certSource
     const cert = normalizeCert(certSource) || certFallback.cert
 
@@ -316,10 +329,35 @@ function parseExcel(path) {
       expiry: excelDateToISO(getCell(row, columnIndex.expiry)),
       training: cleanText(getCell(row, columnIndex.training)),
       retrain: excelDateToISO(getCell(row, columnIndex.retrain)),
+      _certSourceType: certSourceType,
     }
   })
 
-  return parsedRows
+  let lastCertFull = ""
+  let lastCert = ""
+  let canFillDown = false
+
+  const withFilledCert = parsedRows.map((row) => {
+    if (row.certFull) {
+      lastCertFull = row.certFull
+      lastCert = row.cert || normalizeCert(row.certFull)
+      canFillDown = row._certSourceType !== "hint"
+      return row
+    }
+
+    if (canFillDown && row.certNo && lastCertFull) {
+      return {
+        ...row,
+        certFull: lastCertFull,
+        cert: lastCert,
+      }
+    }
+
+    return row
+  })
+
+  return withFilledCert
+    .map(({ _certSourceType, ...row }) => row)
     .filter((row) => row.dept)
     .filter((row) => row.name || row.certNo || row.cert)
 }
