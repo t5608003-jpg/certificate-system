@@ -339,11 +339,9 @@ function parseExcel(path) {
 
   const withFilledCert = parsedRows.map((row) => {
     if (row.certFull) {
-      if (row._certSourceType !== "hint") {
-        lastCertFull = row.certFull
-        lastCert = row.cert || normalizeCert(row.certFull)
-        canFillDown = true
-      }
+      lastCertFull = row.certFull
+      lastCert = row.cert || normalizeCert(row.certFull)
+      canFillDown = true
       return row
     }
 
